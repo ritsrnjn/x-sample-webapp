@@ -18,24 +18,29 @@ REDIRECT_URI = os.environ.get('REDIRECT_URI', 'http://localhost:5000/callback')
 
 AUTHORIZATION_URL = 'https://twitter.com/i/oauth2/authorize'
 TOKEN_URL = 'https://api.twitter.com/2/oauth2/token'
+USER_ME_URL = 'https://api.twitter.com/2/users/me'
+USER_TWEETS_URL = 'https://api.twitter.com/2/users/{user_id}/tweets'
 
 
 def generate_code_verifier():
+    # Generate random string for PKCE OAuth flow
     return secrets.token_urlsafe(32)
 
-
 def generate_code_challenge(verifier):
+    # Create SHA256 hash of verifier for PKCE
     digest = hashlib.sha256(verifier.encode()).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
 
 
 @app.route('/health')
 def health():
+    # Health check endpoint for Railway
     return 'OK', 200
 
 
 @app.route('/')
 def home():
+    # Show login page or redirect to dashboard if logged in
     if 'access_token' in session:
         return redirect(url_for('dashboard'))
     return render_template('home.html')
@@ -43,6 +48,7 @@ def home():
 
 @app.route('/login')
 def login():
+    # Redirect user to Twitter OAuth authorization page
     if not CLIENT_ID:
         return "Error: TWITTER_CLIENT_ID not set", 500
 
@@ -69,6 +75,7 @@ def login():
 
 @app.route('/callback')
 def callback():
+    # Handle OAuth callback and exchange code for access token
     error = request.args.get('error')
     if error:
         return f"Error: {error}", 400
@@ -110,6 +117,7 @@ def callback():
 
 @app.route('/dashboard')
 def dashboard():
+    # Fetch and display user's recent tweets
     if 'access_token' not in session:
         return redirect(url_for('home'))
 
@@ -118,7 +126,7 @@ def dashboard():
 
     # Get user info
     user_response = requests.get(
-        'https://api.twitter.com/2/users/me',
+        USER_ME_URL,
         headers=headers
     )
 
@@ -132,7 +140,7 @@ def dashboard():
 
     # Get last 3 tweets
     tweets_response = requests.get(
-        f'https://api.twitter.com/2/users/{user_id}/tweets',
+        USER_TWEETS_URL.format(user_id=user_id),
         headers=headers,
         params={
             'max_results': 5,
@@ -152,6 +160,7 @@ def dashboard():
 
 @app.route('/logout')
 def logout():
+    # Clear session and redirect to home
     session.clear()
     return redirect(url_for('home'))
 
