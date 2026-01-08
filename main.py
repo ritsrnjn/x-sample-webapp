@@ -135,7 +135,7 @@ def dashboard():
         f'https://api.twitter.com/2/users/{user_id}/tweets',
         headers=headers,
         params={
-            'max_results': 10,
+            'max_results': 5,
             'tweet.fields': 'created_at,public_metrics'
         }
     )
